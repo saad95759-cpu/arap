@@ -1328,11 +1328,31 @@ function initRoom(roomId) {
   });
 
   const micBtn = document.getElementById("mic-btn");
+  const speakerBtn = document.getElementById("speaker-btn");
   let voipActive = false;
+  let speakerActive = true;
   let voipStream = null;
   const voipPeers = new Map();
   const voipAudios = new Map();
   const activeSpeakers = new Set();
+
+  if (speakerBtn) {
+    speakerBtn.classList.add("active");
+    speakerBtn.textContent = "\u{1F50A} Speaker";
+    speakerBtn.addEventListener("click", () => {
+      speakerActive = !speakerActive;
+      if (speakerActive) {
+        speakerBtn.classList.add("active");
+        speakerBtn.textContent = "\u{1F50A} Speaker";
+      } else {
+        speakerBtn.classList.remove("active");
+        speakerBtn.textContent = "\u{1F507} Muted";
+      }
+      for (const audio of voipAudios.values()) {
+        audio.muted = !speakerActive;
+      }
+    });
+  }
 
   micBtn.addEventListener("click", () => {
     if (voipActive) stopVoip();
@@ -1481,6 +1501,7 @@ function initRoom(roomId) {
           voipAudios.set(peerId, audio);
         }
         audio.srcObject = e.streams[0];
+        audio.muted = !speakerActive;
         audio.play().catch(() => {});
       };
     }
