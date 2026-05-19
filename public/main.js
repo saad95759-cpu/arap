@@ -1097,7 +1097,12 @@ function initRoom(roomId) {
     appendSystemMessage(text);
   });
 
-  socket.on("user-joined", ({ name }) => appendSystemMessage(`${name} joined`));
+  socket.on("user-joined", ({ id, name }) => {
+    appendSystemMessage(`${name} joined`);
+    if (id && id !== myId && voipActive) {
+      createVoipOffer(id);
+    }
+  });
   socket.on("user-left", ({ id }) => {
     appendSystemMessage("Someone left");
     if (id) {
@@ -1351,6 +1356,13 @@ function initRoom(roomId) {
         }
       }
 
+      // Initiate connections to other participants we don't have a peer connection with yet
+      participantList.forEach((p) => {
+        if (p.id && p.id !== myId && !voipPeers.has(p.id)) {
+          createVoipOffer(p.id);
+        }
+      });
+
       socket.emit("voip-join");
     } catch (err) {
       flashStatus("Could not access microphone: " + (err.message || err), "error");
@@ -1485,6 +1497,7 @@ function initRoom(roomId) {
   }
 
   async function createVoipOffer(peerId) {
+    if (myId <= peerId) return; // Prevent WebRTC glare by only allowing the peer with the greater socket ID to offer
     try {
       const pc = createVoipPeer(peerId);
       const offer = await pc.createOffer({ offerToReceiveAudio: true });
